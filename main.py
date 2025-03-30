@@ -2,13 +2,14 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from routers import date
+from routers import date, data
 
 app = FastAPI()
 app.title = "Backend EMT"
 app.version = '1.0.0'
 
 app.include_router(date.route_date)
+app.include_router(data.route_data)
 
 origins = [
     "http://localhost",
@@ -18,7 +19,9 @@ origins = [
     # Esta tiene que ser donde se inicia fast api
     # 'http://192.168.173.242:8080'
     'http://127.0.0.1:8080',
-    'http://127.0.0.1:8080'
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:8000'
+
 ]
 
 app.add_middleware(

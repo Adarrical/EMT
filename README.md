@@ -23,7 +23,17 @@ Exemple: Per la data 16/03/2025.
 46 Vent. Per les mateixes dates anteriors la mitjana del vent. 
 
 
+Variables de entorno del sistema
+setx EMT_API_KEY
+setx EMT_URLBASE
 
+
+Estadistiques diaris. 
+- 1000 Temperatura
+- 1300 Precipitació acumulada diaria
+- 1505 Velocitat mitjana diària del vent 2 m (esc.)
+- 1100 Humitat relativa mitjana diària
+{{baseurlEMT}}/variables/estadistics/diaris/1000?any=2025&mes=02
 
 
 
