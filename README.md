@@ -29,10 +29,10 @@ setx EMT_URLBASE
 
 
 Estadistiques diaris. 
-- 1000 Temperatura
-- 1300 Precipitació acumulada diaria
-- 1505 Velocitat mitjana diària del vent 2 m (esc.)
-- 1100 Humitat relativa mitjana diària
+- 1000 Temperatura (ºC)
+- 1300 Precipitació acumulada diaria (mm=l/m2)
+- 1505 Velocitat mitjana diària del vent 2 m (esc.) (m/s)
+- 1100 Humitat relativa mitjana diària (%)
 {{baseurlEMT}}/variables/estadistics/diaris/1000?any=2025&mes=02
 
 

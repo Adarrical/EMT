@@ -75,9 +75,6 @@ async def get_variables(date:datetime):
 
     load_dotenv()
 
-    EMT_API_KEY = os.getenv('EMT_API_KEY')
-    EMT_URLBASE = os.getenv('EMT_URLBASE')
-
     result = get_periods(date)
 
     content = json.loads(result.body)
@@ -86,9 +83,12 @@ async def get_variables(date:datetime):
     start_date = datetime.strptime(content["date_from_rain"],"%Y-%m-%d")
     end_date = datetime.strptime(content["date_to_rain"],"%Y-%m-%d")
 
+    print(f'Precipitació:{start_date}, {end_date}')
+
     months = get_months(start_date, end_date)
 
-
+    conn = sqlite3.connect("emt.db")
+    cursor = conn.cursor()
     for month in months:
 
         year_api, month_api = month.split("-")
@@ -100,18 +100,34 @@ async def get_variables(date:datetime):
             body_bytes = result.body  # Obtiene el contenido en bytes
             body_str = body_bytes.decode("utf-8")  # Decodificar a string
             items = json.loads(body_str)  # Convertir a JSON (lista o diccionario)
+            if isinstance(items, str):
+                items = json.loads(items)
+
             for item in items:
-                codi_estacio = item["codiEstacio"]
+                codi_estacio = str(item["codiEstacio"])
                 for valor in item["valors"]:
                     value_date = datetime.strptime(valor["data"],"%Y-%m-%dZ")
-                    if value_date >= start_date and value_date <= end_date:
-                        print(f'codi estacio: {codi_estacio}, data: {value_date}, valor: {valor["valor"]}')
+                    if value_date >= start_date and value_date <= end_date and valor["valor"] != 0:
+                        cursor.execute("""
+                                        insert into 
+                                              DadesEstacio (CodiEstacio, CodiVariable, data, valor) 
+                                              values (?, ? ,?, ?)
+                                              on conflict (CodiEstacio, CodiVariable, data) do update set 
+                                              valor = excluded.valor
+                                           """,
+                                       (codi_estacio,
+                                        variable,
+                                        value_date,
+                                        valor["valor"]))
+                        #print(f'codi estacio: {codi_estacio}, data: {value_date}, valor: {valor["valor"]}')
 
     # Resta de dades
     start_date = datetime.strptime(content["date_from_rest_variables"], "%Y-%m-%d")
     end_date = datetime.strptime(content["date_to_rest_variables"], "%Y-%m-%d")
 
-    variables = [1100,1300,1505] #read readme
+    print(f'Resta variables:{start_date}, {end_date}')
+
+    variables = [1100,1300,1505,1000] #read readme
 
     months = get_months(start_date, end_date)
 
@@ -125,8 +141,61 @@ async def get_variables(date:datetime):
             if result.status_code == 200:
                 body_bytes = result.body  # Obtiene el contenido en bytes
                 body_str = body_bytes.decode("utf-8")  # Decodificar a string
-                body_json = json.loads(body_str)  # Convertir a JSON (lista o diccionario)
+                items = json.loads(body_str)  # Convertir a JSON (lista o diccionario)
+                if isinstance(items, str):
+                    items = json.loads(items)
 
-            print(body_json)
+                for item in items:
+                    codi_estacio = str(item["codiEstacio"])
+                    for valor in item["valors"]:
+                        value_date = datetime.strptime(valor["data"], "%Y-%m-%dZ")
+                        if value_date >= start_date and value_date <= end_date and valor["valor"] != 0:
+                            cursor.execute("""
+                                            insert into 
+                                                  DadesEstacio (CodiEstacio, CodiVariable, data, valor) 
+                                                  values (?, ? ,?, ?)
+                                                  on conflict (CodiEstacio, CodiVariable, data) do update set 
+                                                  valor = excluded.valor
+                                               """,
+                                           (codi_estacio,
+                                            variable,
+                                            value_date,
+                                            valor["valor"]))
+                            #print(f'codi estacio: {codi_estacio}, data: {value_date}, valor: {valor["valor"]}')
+
+
+    start_date = datetime.strptime(content["date_from_rain"], "%Y-%m-%d")
+    end_date = datetime.strptime(content["date_to_rain"], "%Y-%m-%d")
+
+    cursor.execute("""
+        CREATE TEMP TABLE MunicipisSensePluja AS
+        SELECT e.CodiEstacio
+        FROM Estacio e
+        LEFT JOIN DadesEstacio d 
+            ON e.CodiEstacio = d.CodiEstacio 
+            AND d.CodiVariable = 1300
+            AND d.data BETWEEN ? AND ?
+        WHERE d.CodiEstacio IS NULL;
+    """, (start_date, end_date))
+
+    # Borrar registros de DadesEstacio
+    cursor.execute("""
+        DELETE FROM DadesEstacio
+        WHERE CodiEstacio IN (SELECT CodiEstacio FROM MunicipisSensePluja);
+    """)
+
+    conn.commit()
+    conn.close()
+
+@route_data.delete('/clear_all', tags=['Data'])
+async def clear_all_data():
+     conn = sqlite3.connect("emt.db")
+     cursor = conn.cursor()
+     cursor.execute(""" delete from DadesEstacio """)
+     cursor.execute(""" delete from Estacio """)
+
+     conn.commit()
+     conn.close()
+
 
 

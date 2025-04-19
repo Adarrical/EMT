@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from routers import date, data
+from routers import date, data, results
 
 app = FastAPI()
 app.title = "Backend EMT"
@@ -10,6 +10,7 @@ app.version = '1.0.0'
 
 app.include_router(date.route_date)
 app.include_router(data.route_data)
+app.include_router(results.route_result)
 
 origins = [
     "http://localhost",
